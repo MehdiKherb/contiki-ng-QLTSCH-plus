@@ -498,6 +498,14 @@ tsch_queue_backoff_reset(struct tsch_neighbor *n)
   n->backoff_exponent = TSCH_MAC_MIN_BE;
 }
 /*---------------------------------------------------------------------------*/
+void custom_reset_all_backoff_exponents(){
+  struct tsch_neighbor *curr_nbr = (struct tsch_neighbor *)nbr_table_head(tsch_neighbors);
+  while(curr_nbr != NULL) {
+    tsch_queue_backoff_reset(curr_nbr);
+    curr_nbr = (struct tsch_neighbor *)nbr_table_next(tsch_neighbors, curr_nbr);
+  }
+}
+/*---------------------------------------------------------------------------*/
 /* Increment backoff exponent, pick a new window */
 void
 tsch_queue_backoff_inc(struct tsch_neighbor *n)
@@ -507,10 +515,12 @@ tsch_queue_backoff_inc(struct tsch_neighbor *n)
   /* Pick a window (number of shared slots to skip). Ignore least significant
    * few bits, which, on some embedded implementations of rand (e.g. msp430-libc),
    * are known to have poor pseudo-random properties. */
-  n->backoff_window = (random_rand() >> 6) % (1 << n->backoff_exponent);
+  n->backoff_window = (random_rand() >> 6) % (1ul << n->backoff_exponent);
   /* Add one to the window as we will decrement it at the end of the current slot
    * through tsch_queue_update_all_backoff_windows */
-  n->backoff_window++;
+  if(n->backoff_window < UINT16_MAX) {
+    n->backoff_window++;
+  }
 }
 /*---------------------------------------------------------------------------*/
 /* Decrement backoff window for all queues directed at dest_addr */

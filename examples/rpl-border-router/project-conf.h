@@ -35,6 +35,14 @@
 #define WEBSERVER_CONF_CFS_CONNS 2
 #endif
 
+//#define LOG_CONF_LEVEL_IPV6                        LOG_LEVEL_DBG
+//#define LOG_CONF_LEVEL_TCPIP                       LOG_LEVEL_DBG
+//#define LOG_CONF_LEVEL_IPV6 LOG_LEVEL_DBG
+
+//#define TSCH_CONF_MAC_MAX_FRAME_RETRIES 0
+#define QUEUEBUF_CONF_NUM 8
+
+
 #ifndef BORDER_ROUTER_CONF_WEBSERVER
 #define BORDER_ROUTER_CONF_WEBSERVER 1
 #endif

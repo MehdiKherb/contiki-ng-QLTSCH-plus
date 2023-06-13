@@ -174,6 +174,8 @@ int tsch_queue_backoff_expired(const struct tsch_neighbor *n);
  * \param n The neighbor queue
  */
 void tsch_queue_backoff_reset(struct tsch_neighbor *n);
+//reset all backoff windows for all the neighbors..
+void custom_reset_all_backoff_exponents();
 /**
  * \brief Increment backoff exponent of a given neighbor queue, pick a new window
  * \param n The neighbor queue

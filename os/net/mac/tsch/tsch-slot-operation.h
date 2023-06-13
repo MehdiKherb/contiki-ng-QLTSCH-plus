@@ -37,8 +37,8 @@
  *	TSCH runtime operation within timeslots
 */
 
-#ifndef TSCH_SLOT_OPERATION_H_
-#define TSCH_SLOT_OPERATION_H_
+#ifndef __TSCH_SLOT_OPERATION_H__
+#define __TSCH_SLOT_OPERATION_H__
 
 /********** Includes **********/
 
@@ -59,6 +59,30 @@ extern struct input_packet input_array[TSCH_MAX_INCOMING_PACKETS];
 extern clock_time_t tsch_last_sync_time;
 /* Counts the length of the current burst */
 extern int tsch_current_burst_count;
+
+/**************************** My modifications - Start ********************************/
+
+// #if QL_TSCH_ENABLED  --------------------------------------------------
+// update the values of APT table when a number
+void update_apt_table(float a);
+
+//increment the apt table at the specified timeslot
+void increment_apt_value(uint8_t timeslot);
+
+// return apt table
+float * get_apt_table();
+
+// set all the APT values to 0s at the beginning
+void set_apt_values(void);
+
+// function to return a slot number with the lowest value
+uint8_t get_slot_with_apt_table_min_value();
+
+// get Tx transmission status
+uint8_t * get_Tx_slot_status();
+// #endif /* QL_TSCH_ENABLED */  -----------------------------------------
+
+/**************************** My modifications - End **********************************/
 
 /********** Functions *********/
 
@@ -94,5 +118,6 @@ void tsch_slot_operation_sync(rtimer_clock_t next_slot_start,
  */
 void tsch_slot_operation_start(void);
 
-#endif /* TSCH_SLOT_OPERATION_H_ */
+
+#endif /* __TSCH_SLOT_OPERATION_H__ */
 /** @} */

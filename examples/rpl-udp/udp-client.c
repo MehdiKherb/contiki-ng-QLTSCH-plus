@@ -75,6 +75,7 @@ PROCESS_THREAD(udp_client_process, ev, data)
       LOG_INFO_("\n");
       snprintf(str, sizeof(str), "hello %" PRIu32 "", tx_count);
       simple_udp_sendto(&udp_conn, str, strlen(str), &dest_ipaddr);
+      LOG_INFO("number of packets sent %d", tx_count);
       tx_count++;
     } else {
       LOG_INFO("Not reachable yet\n");

@@ -97,11 +97,10 @@ slip_config_handle_arguments(int argc, char **argv)
 
     case 't':
       if(strncmp("/dev/", optarg, 5) == 0) {
-        strncpy(slip_config_tundev, optarg + 5, sizeof(slip_config_tundev) - 1);
+        strncpy(slip_config_tundev, optarg + 5, sizeof(slip_config_tundev));
       } else {
-        strncpy(slip_config_tundev, optarg, sizeof(slip_config_tundev) - 1);
+        strncpy(slip_config_tundev, optarg, sizeof(slip_config_tundev));
       }
-      slip_config_tundev[sizeof(slip_config_tundev) - 1] = '\0';
       break;
 
     case 'a':

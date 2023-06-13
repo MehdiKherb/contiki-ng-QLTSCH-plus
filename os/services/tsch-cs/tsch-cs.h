@@ -34,8 +34,8 @@
  *         Atis Elsts <atis.elsts@bristol.ac.uk>
  */
 
-#ifndef TSCH_CS_H_
-#define TSCH_CS_H_
+#ifndef __TSCH_CS_H__
+#define __TSCH_CS_H__
 
 #include "contiki.h"
 #include <stdbool.h>
@@ -73,4 +73,4 @@ bool tsch_cs_process(void);
 typedef uint16_t tsch_cs_bitmap_t;
 
 
-#endif /* TSCH_CS_H_ */
+#endif /* __TSCH_CS_H__ */

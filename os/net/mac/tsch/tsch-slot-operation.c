@@ -54,6 +54,10 @@
 #include "net/mac/tsch/tsch.h"
 #include "sys/critical.h"
 
+/**************************** My modifications - Start ********************************/
+#include "lib/random.h"
+/**************************** My modifications - End **********************************/
+
 #include "sys/log.h"
 /* TSCH debug macros, i.e. to set LEDs or GPIOs on various TSCH
  * timeslot events */
@@ -177,6 +181,65 @@ static struct pt slot_operation_pt;
 /* Sub-protothreads of tsch_slot_operation */
 static PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t));
 static PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t));
+
+
+/**************************** My modifications - Start ********************************/
+/* QL-TSCH algorithm */
+#if QL_TSCH_ENABLED
+
+// record Tx slot status 
+uint8_t trans_status[2] = {0, 0};
+
+// array to store APT table
+float apt_table[UNICAST_SLOTFRAME_LENGTH];
+
+// reset the values of APT table when requested
+void update_apt_table(float a)
+{
+  for (uint8_t i = 0; i < UNICAST_SLOTFRAME_LENGTH; i++)
+  {
+    apt_table[i] = apt_table[i] * a;
+  }
+}
+
+// set all the APT values to 0s at the beginning
+void set_apt_values(void) {
+  for (uint8_t i = 0; i < UNICAST_SLOTFRAME_LENGTH; i++)
+  {
+    apt_table[i] = 0.0;
+  }
+}
+
+void increment_apt_value(uint8_t timeslot){
+  apt_table[timeslot]+=1;
+}
+
+// return the apt-table
+float * get_apt_table()
+{
+  return apt_table;
+}
+
+// function to return a slot number with the lowest value
+uint8_t get_slot_with_apt_table_min_value()
+{
+  uint8_t min = random_rand() % UNICAST_SLOTFRAME_LENGTH;
+  for (uint8_t i = 0; i < UNICAST_SLOTFRAME_LENGTH; i++){
+    if (apt_table[i] < apt_table[min]){
+      min = i;
+    }
+  }
+  return min;
+}
+
+// get Tx transmission status
+uint8_t * get_Tx_slot_status()
+{
+  return trans_status;
+}
+#endif /* QL_TSCH_ENABLED */
+
+/**************************** My modifications - End **********************************/
 
 /*---------------------------------------------------------------------------*/
 /* TSCH locking system. TSCH is locked during slot operations */
@@ -335,33 +398,6 @@ tsch_schedule_slot_operation(struct rtimer *tm, rtimer_clock_t ref_time, rtimer_
     RTIMER_BUSYWAIT_UNTIL_ABS(0, ref_time, offset); \
   } while(0);
 /*---------------------------------------------------------------------------*/
-/*
- * Check whether the current channel is in the join hopping sequence.
- * If a custom join hopping sequence is defined, EB packets are only
- * sent using that sequence.
- */
-static uint8_t
-is_current_channel_in_join_sequence(struct tsch_link *link)
-{
-#ifdef TSCH_CONF_JOIN_HOPPING_SEQUENCE
-  /* custom join sequence is defined, some channels might not part of it */
-  uint8_t current_channel = tsch_calculate_channel(&tsch_current_asn,
-                                                   link->channel_offset);
-  int i;
-  for(i = 0; i < sizeof(TSCH_JOIN_HOPPING_SEQUENCE); ++i) {
-    if(TSCH_JOIN_HOPPING_SEQUENCE[i] == current_channel) {
-      /* the channel is in the join sequence */
-      return 1;
-    }
-  }
-  /* the channel is not in the join sequence */
-  return 0;
-#else
-  /* all channels are in the join sequence */
-  return 1;
-#endif
-}
-/*---------------------------------------------------------------------------*/
 /* Get EB, broadcast or unicast packet to be sent, and target neighbor. */
 static struct tsch_packet *
 get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **target_neighbor)
@@ -373,12 +409,9 @@ get_packet_and_neighbor_for_link(struct tsch_link *link, struct tsch_neighbor **
   if(link->link_options & LINK_OPTION_TX) {
     /* is it for advertisement of EB? */
     if(link->link_type == LINK_TYPE_ADVERTISING || link->link_type == LINK_TYPE_ADVERTISING_ONLY) {
-      /* is the current channel in the join hopping sequence? */
-      if(is_current_channel_in_join_sequence(link)) {
-        /* fetch EB packets */
-        n = n_eb;
-        p = tsch_queue_get_packet_for_nbr(n, link);
-      }
+      /* fetch EB packets */
+      n = n_eb;
+      p = tsch_queue_get_packet_for_nbr(n, link);
     }
     if(link->link_type != LINK_TYPE_ADVERTISING_ONLY) {
       /* NORMAL link or no EB to send, pick a data packet */
@@ -745,6 +778,25 @@ PT_THREAD(tsch_tx_slot(struct pt *pt, struct rtimer *t))
     current_packet->transmissions++;
     current_packet->ret = mac_tx_status;
 
+/**************************** My modifications - Start ********************************/
+
+#if QL_TSCH_ENABLED
+  
+  if(current_link->slotframe_handle == 1) {
+    if (mac_tx_status == MAC_TX_OK)
+    {
+      trans_status[0] = 1;
+      trans_status[1] = current_link->timeslot;
+    } else if (mac_tx_status == MAC_TX_COLLISION || mac_tx_status == MAC_TX_NOACK ||
+              mac_tx_status == MAC_TX_ERR_FATAL || mac_tx_status == MAC_TX_ERR)
+    {
+      trans_status[0] = 2;
+      trans_status[1] = current_link->timeslot;
+    }
+  }
+#endif /* QL_TSCH_ENABLED */
+/**************************** My modifications - End **********************************/
+
     /* Post TX: Update neighbor queue state */
     in_queue = tsch_queue_packet_sent(current_neighbor, current_packet, current_link, mac_tx_status);
 
@@ -986,7 +1038,15 @@ PT_THREAD(tsch_rx_slot(struct pt *pt, struct rtimer *t))
               tsch_timesync_update(n, since_last_timesync, -estimated_drift);
               tsch_schedule_keepalive(0);
             }
+/**************************** My modifications - Start ********************************/
+//#if QL_TSCH_ENABLED
+   //update APT-table based on the reception
+//   if(current_link->slotframe_handle == 1) {
+ //   apt_table[current_link->timeslot] += 1;
+ //  }
+//#endif /* QL_TSCH_ENABLED */
 
+/**************************** My modifications - End **********************************/
             /* Add current input to ringbuf */
             ringbufindex_put(&input_ringbuf);
 
